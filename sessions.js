@@ -1,4 +1,5 @@
 'use strict';
+
 function dividerHTML() {
 
     /*****************************************************
@@ -13,7 +14,7 @@ function dividerHTML() {
     return htmlDivider;
 };
 
-function tabHTML(tab) {
+function tabHTML(tab, local) {
 
     /*****************************************************
      *
@@ -28,37 +29,19 @@ function tabHTML(tab) {
 
     var htmlTabLink = document.createElement('a');
     htmlTabLink.className = 'tabLink';
-    htmlTabLink.href = tab.url;
     htmlTabLink.textContent = tab.title;
+    htmlTabLink.href = tab.url;
+    if (local)
+        htmlTabLink.onclick = function() {
+            showLocalTab(tab.id);
+            return false;
+        };
     htmlTab.appendChild(htmlTabLink);
 
     return htmlTab;
 };
 
-function sessionHTML(session) {
-
-    /*****************************************************
-     *
-     * <li class="session">
-     *  <ul class="sessionTabs">{sessionTabs}</ul>
-     * </li>
-     *
-     *****************************************************/
-
-    var htmlSession = document.createElement('li');
-    htmlSession.className = 'session';
-
-    var htmlSessionTabs = document.createElement('ul');
-    htmlSessionTabs.className = 'sessionTabs';
-    session.window.tabs.forEach(function(tab) {
-        htmlSessionTabs.appendChild(tabHTML(tab));
-    });
-    htmlSession.appendChild(htmlSessionTabs);
-
-    return htmlSession;
-};
-
-function deviceHTML(device) {
+function remoteHTML(device) {
 
     /*****************************************************
      *
@@ -82,36 +65,22 @@ function deviceHTML(device) {
     device.sessions.forEach(function(session, idx) {
         if (idx > 0)
             htmlDeviceSessions.appendChild(dividerHTML());
-        htmlDeviceSessions.appendChild(sessionHTML(session));
+
+        var htmlSession = document.createElement('li');
+        htmlSession.className = 'session';
+
+        var htmlSessionTabs = document.createElement('ul');
+        htmlSessionTabs.className = 'sessionTabs';
+        session.window.tabs.forEach(function(tab) {
+            htmlSessionTabs.appendChild(tabHTML(tab, false));
+        });
+        htmlSession.appendChild(htmlSessionTabs);
+
+        htmlDeviceSessions.appendChild(htmlSession);
     });
     htmlDevice.appendChild(htmlDeviceSessions);
 
     return htmlDevice;
-};
-
-function screenHTML(screen) {
-
-    /*****************************************************
-     *
-     * <li class="session">
-     *  <ul class="sessionTabs">{sessionTabs}</ul>
-     * </li>
-     *
-     *****************************************************/
-
-    var htmlSession = document.createElement('li');
-    htmlSession.className = 'session';
-
-    var htmlSessionTabs = document.createElement('ul');
-    htmlSessionTabs.className = 'sessionTabs';
-    chrome.tabs.getAllInWindow(screen.id, function(tabs) {
-        tabs.forEach(function(tab) {
-            htmlSessionTabs.appendChild(tabHTML(tab));
-        });
-    });
-    htmlSession.appendChild(htmlSessionTabs);
-
-    return htmlSession;
 };
 
 function localHTML(screens) {
@@ -138,11 +107,38 @@ function localHTML(screens) {
     screens.forEach(function(screen, idx) {
         if (idx > 0)
             htmlDeviceSessions.appendChild(dividerHTML());
-        htmlDeviceSessions.appendChild(screenHTML(screen));
+
+        var htmlSession = document.createElement('li');
+        htmlSession.className = 'session';
+
+        var htmlSessionTabs = document.createElement('ul');
+        htmlSessionTabs.className = 'sessionTabs';
+        chrome.tabs.query({windowId : screen.id}, function(tabs) {
+            tabs.forEach(function(tab) {
+                htmlSessionTabs.appendChild(tabHTML(tab, true));
+            });
+        });
+        htmlSession.appendChild(htmlSessionTabs);
+
+        var sortable = Sortable.create(htmlSessionTabs, {
+            onSort : function(evt) {
+
+            }
+        });
+
+        htmlDeviceSessions.appendChild(htmlSession);
     });
     htmlDevice.appendChild(htmlDeviceSessions);
 
     return htmlDevice;
+};
+
+function showLocalTab(tabId) {
+    chrome.tabs.get(tabId, function(tab) {
+        chrome.windows.update(tab.windowId, {focused:true}, function(screen) {
+            chrome.tabs.update(tabId, {active:true});
+        })
+    });
 };
 
 chrome.sessions.getDevices({}, function(devices) {
@@ -152,7 +148,7 @@ chrome.sessions.getDevices({}, function(devices) {
     chrome.windows.getAll(function(screens) {
         htmlContainer.appendChild(localHTML(screens));
         devices.forEach(function(device) {
-            htmlContainer.appendChild(deviceHTML(device));
+            htmlContainer.appendChild(remoteHTML(device));
         });
     });
 
