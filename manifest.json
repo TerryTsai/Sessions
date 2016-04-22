@@ -1,0 +1,17 @@
+{
+  "manifest_version": 2,
+  "name": "Sessions",
+  "version": "1.0",
+
+  "description": "Show all session tabs across all devices.",
+  "browser_action": {
+    "default_icon": "sessions.png"
+  },
+  "permissions" : [
+    "sessions",
+    "tabs"
+  ],
+  "chrome_url_overrides" : {
+      "newtab": "sessions.html"
+  }
+}
