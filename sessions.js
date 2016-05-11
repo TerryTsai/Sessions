@@ -120,12 +120,6 @@ function localHTML(screens) {
         });
         htmlSession.appendChild(htmlSessionTabs);
 
-        var sortable = Sortable.create(htmlSessionTabs, {
-            onSort : function(evt) {
-
-            }
-        });
-
         htmlDeviceSessions.appendChild(htmlSession);
     });
     htmlDevice.appendChild(htmlDeviceSessions);
